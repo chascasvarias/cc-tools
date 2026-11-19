@@ -39,18 +39,33 @@ export const register: Register = (on, options) => {
   const showCommand = options.showCommand !== false
   const maxChars = Math.max(10, Number(options.commandMaxChars ?? 60) || 60)
 
+  // One folded line for a call: "● Ran command: sed -i ... (4 lines)", "● Edited src/a.ts".
+  const describe = (tool: string, input: unknown, output: unknown, isRunning: boolean): string => {
+    const verb = VERBS[tool] ?? tool
+    const what = showCommand && verb === 'Ran command' ? ': ' + shortCommand(input, maxChars) : target(input)
+    const n = showLineCount && output !== undefined ? lines(output) : 0
+    return (icon ? icon + ' ' : '') + verb + what + (isRunning ? ' …' : n > 1 ? ` (${n} lines)` : '')
+  }
+
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
     if (e.props.isExpanded || e.props.isErrored || e.props.isInterrupted) return next(e)
     const { Text } = $.ui.resolve(e)
-    const verb = VERBS[e.props.tool] ?? e.props.tool
-    const n = showLineCount && e.props.output !== undefined ? lines(e.props.output) : 0
+    return <Text dimColor>{describe(e.props.tool, e.props.input, e.props.output, e.props.isRunning)}</Text>
+  })
+
+  // The engine folds runs of reads/searches/read-only commands into one count line
+  // ("Ran 1 shell command"); draw one short line per call instead. ctrl+o still shows all.
+  on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
+    if (e.props.isExpanded || e.props.isCallsOnly !== true) return next(e)
+    const { Box, Text } = $.ui.resolve(e)
     return (
-      <Text dimColor>
-        {icon ? icon + ' ' : ''}
-        {verb}
-        {showCommand && VERBS[e.props.tool] === 'Ran command' ? ': ' + shortCommand(e.props.input, maxChars) : target(e.props.input)}
-        {e.props.isRunning ? ' …' : n > 1 ? ` (${n} lines)` : ''}
-      </Text>
+      <Box flexDirection="column">
+        {e.props.calls.map((c, i) => (
+          <Text key={c.tool_use_id ?? String(i)} dimColor>
+            {describe(c.tool, c.input, c.output, c.isRunning)}
+          </Text>
+        ))}
+      </Box>
     )
   })
 
