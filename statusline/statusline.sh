@@ -6,6 +6,13 @@ input=$(cat)
 j() { echo "$input" | jq -r "$1 // empty" 2>/dev/null; }
 sep=" | "
 cwd=$(j '.workspace.current_dir // .cwd')
+# reemplazos literales por equipo, en orden: <dir de Claude>/cc-tools.json {"replace":[{"from":"…","to":"…"}]}
+cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/cc-tools.json"
+if [ -n "$cwd" ] && [ -f "$cfg" ]; then
+  r=$(jq -r --arg s "$cwd" 'reduce ((.replace // []) | if type == "array" then .[] else empty end
+        | select(type == "object" and (.from | type) == "string" and .from != "")) as $x
+      ($s; split($x.from) | join(if ($x.to | type) == "string" then $x.to else "" end))' "$cfg" 2>/dev/null) && cwd=$r
+fi
 out=$(printf '\033[01;32m%s@%s\033[00m:\033[01;34m%s\033[00m' "$(whoami)" "$(hostname -s)" "$cwd")
 
 model=$(j '.model.display_name')

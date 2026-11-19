@@ -12,6 +12,7 @@ Utilidades pequeñas para dejar Claude Code más limpio y cómodo.
 - Plugin: [docs/instalar-plugin.md](docs/instalar-plugin.md)
 - Línea de estado en Linux/macOS: [docs/instalar-statusline-linux.md](docs/instalar-statusline-linux.md)
 - Línea de estado en Windows: [docs/instalar-statusline-windows.md](docs/instalar-statusline-windows.md)
+- Reemplazos por equipo (plugin y línea de estado): [docs/configurar.md](docs/configurar.md)
 - Actualizar en muchos equipos: [docs/actualizar.md](docs/actualizar.md)
 
 Las guías están escritas para que las siga una persona o un agente de IA: cada paso lleva su comprobación.

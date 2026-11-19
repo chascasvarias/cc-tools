@@ -11,6 +11,20 @@ $sep = ' | '
 function Paint($c, $t) { if ($c) { "$c$t$RST" } else { $t } }
 
 $cwd = if ($j.workspace.current_dir) { $j.workspace.current_dir } else { $j.cwd }
+# reemplazos literales por equipo, en orden: <dir de Claude>\cc-tools.json {"replace":[{"from":"...","to":"..."}]}
+$cfgDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $env:USERPROFILE '.claude' }
+$cfgFile = Join-Path $cfgDir 'cc-tools.json'
+if ($cwd -and (Test-Path -LiteralPath $cfgFile)) {
+  try {
+    $cfg = [IO.File]::ReadAllText($cfgFile, [Text.Encoding]::UTF8) | ConvertFrom-Json
+    foreach ($x in @($cfg.replace)) {
+      if ($x.from -is [string] -and $x.from -ne '') {
+        $to = if ($x.to -is [string]) { $x.to } else { '' }
+        $cwd = ([string]$cwd).Replace($x.from, $to)
+      }
+    }
+  } catch { }
+}
 $out = "$E[01;32m$($env:USERNAME)@$($env:COMPUTERNAME.ToLower())$RST`:$E[01;34m$cwd$RST"
 
 $model = $j.model.display_name; $effort = $j.effort.level
