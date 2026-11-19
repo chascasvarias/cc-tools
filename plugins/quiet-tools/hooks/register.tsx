@@ -19,6 +19,14 @@ const target = (input: unknown): string => {
   return typeof p === 'string' ? ' ' + p.split(/[\\/]/).slice(-2).join('/') : ''
 }
 
+// First line of a shell command, whitespace collapsed, cut to `max` characters.
+const shortCommand = (input: unknown, max: number): string => {
+  const c = ((input ?? {}) as Record<string, unknown>).command
+  if (typeof c !== 'string') return ''
+  const one = (c.trim().split('\n')[0] ?? '').replace(/\s+/g, ' ')
+  return one.length > max ? one.slice(0, Math.max(1, max - 1)) + '…' : one
+}
+
 const lines = (output: unknown): number => {
   const o = (output ?? {}) as Record<string, unknown>
   const text = [o.stdout, o.stderr].filter(x => typeof x === 'string').join('\n')
@@ -28,6 +36,8 @@ const lines = (output: unknown): number => {
 export const register: Register = (on, options) => {
   const icon = String(options.icon ?? '●').trim()
   const showLineCount = options.showLineCount !== false
+  const showCommand = options.showCommand !== false
+  const maxChars = Math.max(10, Number(options.commandMaxChars ?? 60) || 60)
 
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
     if (e.props.isExpanded || e.props.isErrored || e.props.isInterrupted) return next(e)
@@ -38,7 +48,7 @@ export const register: Register = (on, options) => {
       <Text dimColor>
         {icon ? icon + ' ' : ''}
         {verb}
-        {target(e.props.input)}
+        {showCommand && VERBS[e.props.tool] === 'Ran command' ? ': ' + shortCommand(e.props.input, maxChars) : target(e.props.input)}
         {e.props.isRunning ? ' …' : n > 1 ? ` (${n} lines)` : ''}
       </Text>
     )

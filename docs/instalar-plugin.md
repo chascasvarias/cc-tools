@@ -21,6 +21,8 @@ En `/config`, entrada `quiet-tools`:
 
 - `icon`: marcador al inicio de cada línea (vacío = ninguno).
 - `showLineCount`: añade `(N lines)` a los comandos.
+- `showCommand`: muestra una versión corta del comando Bash/PowerShell (`Ran command: sed -i … README.md`). Sin esto, un comando que edita un archivo no dice cuál.
+- `commandMaxChars`: longitud máxima de ese texto (por defecto 60).
 
 ## Quitar
 

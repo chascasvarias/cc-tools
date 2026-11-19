@@ -1,6 +1,6 @@
 {
   "name": "quiet-tools",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Replaces diffs, Bash commands and tool output with one short line (ctrl+o shows everything)",
   "license": "MIT",
   "userConfig": {
@@ -9,6 +9,18 @@
       "title": "Icon",
       "description": "Marker at the start of each folded tool line. Leave empty for none.",
       "default": "●"
+    },
+    "showCommand": {
+      "type": "boolean",
+      "title": "Show command",
+      "description": "Show a short version of Bash/PowerShell commands, e.g. Ran command: sed -i ... README.md",
+      "default": true
+    },
+    "commandMaxChars": {
+      "type": "number",
+      "title": "Command length",
+      "description": "Maximum characters of the command shown (minimum 10).",
+      "default": 60
     },
     "showLineCount": {
       "type": "boolean",
