@@ -1,0 +1,20 @@
+{
+  "name": "quiet-tools",
+  "version": "0.2.0",
+  "description": "Replaces diffs, Bash commands and tool output with one short line (ctrl+o shows everything)",
+  "license": "MIT",
+  "userConfig": {
+    "icon": {
+      "type": "string",
+      "title": "Icon",
+      "description": "Marker at the start of each folded tool line. Leave empty for none.",
+      "default": "●"
+    },
+    "showLineCount": {
+      "type": "boolean",
+      "title": "Show line count",
+      "description": "Append the number of output lines, e.g. (24 lines), to folded Bash calls.",
+      "default": true
+    }
+  }
+}

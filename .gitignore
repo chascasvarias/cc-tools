@@ -1,0 +1,8 @@
+.env
+.env.*
+*.key
+*.pem
+settings.local.json
+.claude/
+node_modules/
+*.log

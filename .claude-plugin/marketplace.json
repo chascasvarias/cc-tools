@@ -1,0 +1,12 @@
+{
+  "name": "cc-tools",
+  "description": "Small utilities to tidy up Claude Code",
+  "owner": { "name": "cc-tools" },
+  "plugins": [
+    {
+      "name": "quiet-tools",
+      "source": "./plugins/quiet-tools",
+      "description": "One short line instead of diffs, Bash commands and tool output (ctrl+o shows everything)"
+    }
+  ]
+}
