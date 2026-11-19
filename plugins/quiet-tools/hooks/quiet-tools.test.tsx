@@ -148,3 +148,25 @@ test('the drawn row paints the verb with verbColor', { options: { verbColor: 'wa
   expect(all).toContain('"color":"warning"')
   await ui.unmount()
 })
+
+test('an edit row paints +N green and −N red', async $ => {
+  const ui = await $.ui.mount({
+    plugin: 'quiet-tools',
+    surface: 'terminal',
+    component: 'ToolUse',
+    props: {
+      tool_use_id: 't4',
+      tool: 'Edit',
+      input: { file_path: 'docs/a.md' },
+      isRunning: false,
+      isErrored: false,
+      isInterrupted: false,
+      isExpanded: false,
+      output: { structuredPatch: [{ lines: ['-a', '+b', '+c'] }] },
+    },
+  })
+  const all = JSON.stringify(await ui.find({ type: 'Text' }))
+  expect(all).toContain('"color":"success"')
+  expect(all).toContain('"color":"error"')
+  await ui.unmount()
+})

@@ -61,7 +61,9 @@ export const lines = (output: unknown): number => {
 }
 
 // Added and removed lines of an Edit/Write result: "(+3 −1)", "(+12)", or '' when unknown.
-export const diffSize = (output: unknown): string => {
+export type DiffCounts = { add: number; del: number }
+
+export const diffCounts = (output: unknown): DiffCounts | undefined => {
   const o = (output ?? {}) as { structuredPatch?: unknown; type?: unknown; content?: unknown }
   let add = 0
   let del = 0
@@ -76,8 +78,15 @@ export const diffSize = (output: unknown): string => {
   }
   if (add === 0 && del === 0 && o.type === 'create' && typeof o.content === 'string' && o.content !== '')
     add = o.content.replace(/\r?\n+$/, '').split('\n').length
-  if (add === 0 && del === 0) return ''
-  return del === 0 ? ` (+${add})` : add === 0 ? ` (−${del})` : ` (+${add} −${del})`
+  return add === 0 && del === 0 ? undefined : { add, del }
+}
+
+export const formatDiff = ({ add, del }: DiffCounts): string =>
+  del === 0 ? ` (+${add})` : add === 0 ? ` (−${del})` : ` (+${add} −${del})`
+
+export const diffSize = (output: unknown): string => {
+  const c = diffCounts(output)
+  return c ? formatDiff(c) : ''
 }
 
 export type Options = {
@@ -91,7 +100,8 @@ export type Options = {
   replace: readonly Replacement[]
 }
 
-export type Parts = { lead: string; verb: string; rest: string }
+// `diff` is kept apart from `rest` so "+N" and "−N" can take their own colors.
+export type Parts = { lead: string; verb: string; rest: string; diff?: DiffCounts }
 
 // One folded line for a call, in three parts so the verb can take its own color:
 // "● " + "Cmd" + ": List files (4 lines)", "● " + "Edited" + " src/a.ts (+3 −1)".
@@ -106,6 +116,7 @@ export const parts = (
   let verb = VERBS[tool] ?? tool
   let what = target(input)
   let tailText = ''
+  let diff: DiffCounts | undefined
   if (verb === 'Cmd') {
     const desc = typeof i.description === 'string' ? i.description.trim() : ''
     const cmd = typeof i.command === 'string' ? applyReplacements(i.command, o.replace) : ''
@@ -116,14 +127,35 @@ export const parts = (
     if (n > 1) tailText = ` (${n} lines)`
   } else if (tool === 'Edit' || tool === 'Write' || tool === 'MultiEdit') {
     if (tool === 'Write' && (output as { type?: unknown } | undefined)?.type === 'create') verb = 'Created'
-    if (o.showDiffSize && output !== undefined) tailText = diffSize(output)
+    if (o.showDiffSize && output !== undefined && !isRunning) diff = diffCounts(output)
   }
-  return { lead: o.icon ? o.icon + ' ' : '', verb, rest: what + (isRunning ? ' …' : tailText) }
+  const p: Parts = { lead: o.icon ? o.icon + ' ' : '', verb, rest: what + (isRunning ? ' …' : tailText) }
+  if (diff) p.diff = diff
+  return p
 }
 
 export const describe = (...a: Parameters<typeof parts>): string => {
   const p = parts(...a)
-  return p.lead + p.verb + p.rest
+  return p.lead + p.verb + p.rest + (p.diff ? formatDiff(p.diff) : '')
+}
+
+// One drawn row: dim text, the verb in verbColor, "+N" green and "−N" red.
+// `T` is the surface's Text element from $.ui.resolve.
+const row = (T: any, o: Options, p: Parts, key?: string) => {
+  const kids = [
+    <T key="l" dimColor>{p.lead}</T>,
+    o.verbColor ? <T key="v" color={o.verbColor}>{p.verb}</T> : <T key="v" dimColor>{p.verb}</T>,
+    <T key="r" dimColor>{p.rest}</T>,
+  ]
+  if (p.diff) {
+    const { add, del } = p.diff
+    kids.push(<T key="o" dimColor> (</T>)
+    if (add > 0) kids.push(<T key="a" color="success">+{add}</T>)
+    if (add > 0 && del > 0) kids.push(<T key="s" dimColor> </T>)
+    if (del > 0) kids.push(<T key="d" color="error">−{del}</T>)
+    kids.push(<T key="c" dimColor>)</T>)
+  }
+  return <T key={key}>{kids}</T>
 }
 
 // Per-machine replacements in <claude config dir>/cc-tools.json, shared with the status line.
@@ -157,14 +189,7 @@ export const register: Register = (on, options) => {
     if (e.props.isExpanded || e.props.isErrored || e.props.isInterrupted) return next(e)
     const o = await (config ??= loadOptions($, base))
     const { Text } = $.ui.resolve(e)
-    const p = parts(o, e.props.tool, e.props.input, e.props.output, e.props.isRunning)
-    return (
-      <Text>
-        <Text dimColor>{p.lead}</Text>
-        {o.verbColor ? <Text color={o.verbColor}>{p.verb}</Text> : <Text dimColor>{p.verb}</Text>}
-        <Text dimColor>{p.rest}</Text>
-      </Text>
-    )
+    return row(Text, o, parts(o, e.props.tool, e.props.input, e.props.output, e.props.isRunning))
   })
 
   // The engine folds runs of reads/searches/read-only commands into one count line
@@ -175,16 +200,7 @@ export const register: Register = (on, options) => {
     const { Box, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="column">
-        {e.props.calls.map((c, i) => {
-          const p = parts(o, c.tool, c.input, c.output, c.isRunning)
-          return (
-            <Text key={c.tool_use_id ?? String(i)}>
-              <Text dimColor>{p.lead}</Text>
-              {o.verbColor ? <Text color={o.verbColor}>{p.verb}</Text> : <Text dimColor>{p.verb}</Text>}
-              <Text dimColor>{p.rest}</Text>
-            </Text>
-          )
-        })}
+        {e.props.calls.map((c, i) => row(Text, o, parts(o, c.tool, c.input, c.output, c.isRunning), c.tool_use_id ?? String(i)))}
       </Box>
     )
   })
