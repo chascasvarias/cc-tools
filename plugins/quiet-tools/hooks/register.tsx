@@ -19,12 +19,16 @@ const target = (input: unknown): string => {
   return typeof p === 'string' ? ' ' + p.split(/[\\/]/).slice(-2).join('/') : ''
 }
 
-// First line of a shell command, whitespace collapsed, cut to `max` characters.
+// First line of a shell command, whitespace collapsed, cut in the middle to `max`
+// characters so both the start and the end (usually the file) stay visible.
 const shortCommand = (input: unknown, max: number): string => {
   const c = ((input ?? {}) as Record<string, unknown>).command
   if (typeof c !== 'string') return ''
   const one = (c.trim().split('\n')[0] ?? '').replace(/\s+/g, ' ')
-  return one.length > max ? one.slice(0, Math.max(1, max - 1)) + '…' : one
+  if (one.length <= max) return one
+  const head = Math.ceil((max - 1) * 0.6)
+  const tail = max - 1 - head
+  return one.slice(0, head).trimEnd() + '…' + one.slice(one.length - tail).trimStart()
 }
 
 const lines = (output: unknown): number => {
