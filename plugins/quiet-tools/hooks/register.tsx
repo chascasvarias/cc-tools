@@ -31,10 +31,14 @@ const shortCommand = (input: unknown, max: number): string => {
   return one.slice(0, head).trimEnd() + '…' + one.slice(one.length - tail).trimStart()
 }
 
+// Lines of stdout plus stderr; a trailing newline does not count as an extra line.
 const lines = (output: unknown): number => {
   const o = (output ?? {}) as Record<string, unknown>
-  const text = [o.stdout, o.stderr].filter(x => typeof x === 'string').join('\n')
-  return text ? text.split('\n').length : 0
+  return [o.stdout, o.stderr]
+    .filter((x): x is string => typeof x === 'string')
+    .map(x => x.replace(/\r?\n+$/, ''))
+    .filter(x => x !== '')
+    .reduce((n, x) => n + x.split('\n').length, 0)
 }
 
 export const register: Register = (on, options) => {
